@@ -62,7 +62,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ github.event.inputs.tag_name }}"
             if [ -z "$TAG" ]; then
-              TAG="manual-${GITHUB_RUN_NUMBER}"
+              TAG="manual-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
             fi
           else
             TAG="${GITHUB_REF_NAME}"
