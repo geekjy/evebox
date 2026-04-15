@@ -2,6 +2,16 @@ name: Build Release
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish artifacts to GitHub Release"
+        required: true
+        type: boolean
+        default: true
+      tag_name:
+        description: "Release tag name for manual runs (example: v1.0.0-custom.1)"
+        required: false
+        type: string
   push:
     tags:
       - "v*"
@@ -44,9 +54,21 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_release == 'true')
     runs-on: ubuntu-latest
     steps:
+      - name: Decide release tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+            if [ -z "$TAG" ]; then
+              TAG="manual-${GITHUB_RUN_NUMBER}"
+            fi
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -55,4 +77,6 @@ jobs:
       - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
           files: release-assets/**/*
